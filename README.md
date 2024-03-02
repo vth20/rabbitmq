@@ -1,3 +1,4 @@
+# Rabbitmq
 list queue: `$ rabbitmqctl list_queues` \
 
 **Note**
@@ -84,3 +85,49 @@ await channel.assertQueue('myQueue', { messageTtl: 60000 }); // TTL = 60s
 // Thiết lập TTL cho từng tin nhắn (milliseconds)
 const message = { content: 'Hello RabbitMQ!', expiration: 30000 }; // TTL = 30s
 channel.sendToQueue('myQueue', Buffer.from(JSON.stringify(message)));
+```
+
+## Exclusive trong RabbitMQ
+
+### Giải thích:
+- **`exclusive`**: Nếu được đặt thành `true`, hàng đợi (queue) chỉ có thể được sử dụng bởi kết nối hiện tại. Điều này có nghĩa là chỉ có kết nối đó có thể gửi hoặc nhận tin nhắn từ hàng đợi đó. Khi kết nối đó đóng kết nối với hàng đợi, hàng đợi sẽ bị xóa. Điều này hữu ích khi bạn muốn tạo hàng đợi tạm thời chỉ dành cho một kết nối hoặc một phiên làm việc cụ thể.
+
+### Lưu ý:
+1. **Sử dụng trong các tình huống tạm thời**: Thuộc tính `exclusive` thường được sử dụng cho các hàng đợi tạm thời hoặc trong các tình huống mà bạn muốn đảm bảo rằng một hàng đợi chỉ có thể được sử dụng bởi một kết nối cụ thể.
+
+2. **Không chia sẻ giữa nhiều kết nối**: Khi sử dụng `exclusive`, hãy nhớ rằng hàng đợi sẽ không thể chia sẻ giữa nhiều kết nối. Điều này có thể gây ra vấn đề nếu bạn cố gắng truy cập vào hàng đợi từ nhiều ứng dụng hoặc kết nối.
+
+3. **Đóng kết nối khi không cần thiết**: Khi sử dụng `exclusive`, hãy chắc chắn rằng bạn đóng kết nối đến hàng đợi khi không cần thiết để giải phóng tài nguyên và tránh tình trạng hàng đợi bị lãng phí.
+
+4. **Thường được sử dụng với hàng đợi tạm thời**: `exclusive` thường được sử dụng với hàng đợi tạm thời mà bạn muốn xóa khi kết thúc một phiên làm việc hoặc một kết nối cụ thể.
+
+Trong RabbitMQ, việc sử dụng `exclusive` cần được xem xét cẩn thận và chỉ nên được áp dụng khi cần thiết.
+### Ví dụ:
+```javascript
+// Tạo một hàng đợi tạm thời chỉ sử dụng bởi kết nối hiện tại
+const { queue } = await channel.assertQueue('', { exclusive: true });
+console.log(`Created temporary queue: ${queue}`);
+```
+
+## Sử dụng Wildcard trong Routing Key của RabbitMQ
+
+Trong RabbitMQ, khi sử dụng loại sổ định tuyến `topic`, bạn có thể sử dụng `*` và `#` trong `routing key` để xác định các mẫu định tuyến khác nhau. Dưới đây là sự so sánh giữa hai ký tự này:
+
+1. **`*` (Wildcard `*`)**:
+   - Khi sử dụng `*` trong `routing key`, nó sẽ thay thế cho một từ (hay một phần của từ) trong `routing key`.
+   - Ví dụ: `topic.*` sẽ khớp với `topic.message`, `topic.notification`, nhưng không khớp với `topic.message.alert`.
+   - `*` chỉ đại diện cho một phần của `routing key`.
+
+2. **`#` (Wildcard `#`)**:
+   - Khi sử dụng `#` trong `routing key`, nó sẽ khớp với bất kỳ từ nào hoặc không có từ nào trong `routing key`.
+   - Ví dụ: `topic.#` sẽ khớp với `topic.message`, `topic.message.alert`, `topic.notification`, và cả `topic` nếu không có từ phụ nào.
+   - `#` có thể đại diện cho một hoặc nhiều phần của `routing key`.
+
+Ví dụ cụ thể:
+
+- `topic.*` sẽ khớp với tất cả các `routing key` bắt đầu bằng `topic.` và theo sau là một từ duy nhất.
+- `topic.#` sẽ khớp với tất cả các `routing key` bắt đầu bằng `topic.` và có thể kết thúc ở đó hoặc tiếp tục với các từ/phần của từ phụ.
+
+Tóm lại, `*` và `#` trong `routing key` cho phép bạn xác định các mẫu định tuyến linh hoạt, giúp bạn định tuyến tin nhắn đến các hàng đợi một cách chính xác theo yêu cầu của ứng dụng của bạn.
+### Ví dụ
+- [Topic](./tips//topic/)
